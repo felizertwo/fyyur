@@ -1,5 +1,9 @@
-from config import db
 from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+
+
+db = SQLAlchemy()
+
 
 #----------------------------------------------------------------------------#
 # Models.
@@ -25,7 +29,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean, default=True)
     seeking_description = db.Column(db.String(250))
 
-    shows = db.relationship('Show', backref='venue', lazy=True)
+    shows = db.relationship('Show', backref=db.backref('venue'), lazy="joined")
 
     def __repr__(self):
         return f"<Venue {self.id} name: {self.name}>"
@@ -46,7 +50,7 @@ class Artist(db.Model):
     seeking_venue = db.Column(db.Boolean, default=True)
     seeking_description = db.Column(db.String(250))
 
-    shows = db.relationship('Show', backref='artist', lazy=True)
+    shows = db.relationship('Show', backref=db.backref('artist'), lazy="joined")
 
     def __repr__(self):
         return f"<Artist {self.id} name: {self.name}>"
