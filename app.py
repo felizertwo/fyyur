@@ -39,12 +39,12 @@ migrate = Migrate(app, db)
 
 
 def format_datetime(value, format='medium'):
-    date = dateutil.parser.parse(value)
+    # date = dateutil.parser.parse(value)
     if format == 'full':
         format = "EEEE MMMM, d, y 'at' h:mma"
     elif format == 'medium':
         format = "EE MM, dd, y h:mma"
-    return babel.dates.format_datetime(date, format, locale='en')
+    return babel.dates.format_datetime(value, format, locale='en')
 
 
 app.jinja_env.filters['datetime'] = format_datetime
@@ -128,21 +128,11 @@ def search_venues():
 def show_venue(venue_id):
     # shows the venue page with the given venue_id
     venue = Venue.query.get(venue_id)
-    past_shows = []
-    upcoming_shows = []
+    # shows = Show.query.join(Artist).filter(Show.venue_id == venue_id).all()
     current_time = datetime.now()
-
-    for show in venue.shows:
-        data = {
-            "artist_id": show.artist_id,
-            "artist_name": show.artist.name,
-            "artist_image_link": show.artist.image_link,
-            "start_time": format_datetime(str(show.start_time))
-        }
-        if show.start_time > current_time:
-            upcoming_shows.append(data)
-        else:
-            past_shows.append(data)
+    # Select all Shows with their artists that happened on this venue in the past / future :)
+    past_shows = Show.query.join(Artist).filter(Show.venue_id == venue_id).filter(Show.start_time < current_time).all()
+    upcoming_shows =  Show.query.join(Artist).filter(Show.venue_id == venue_id).filter(Show.start_time >= current_time).all()
 
     data = {
         "id": venue.id,
@@ -307,21 +297,9 @@ def search_artists():
 def show_artist(artist_id):
     # shows the artist page with the given artist_id
     artist = Artist.query.get(artist_id)
-    past_shows = []
-    upcoming_shows = []
     current_time = datetime.now()
-
-    for show in artist.shows:
-        data = {
-            'venue_id': show.venue_id,
-            'venue_name': show.venue.name,
-            'venue_image_link': show.venue.image_link,
-            'start_time': format_datetime(str(show.start_time))
-        }
-        if show.start_time > current_time:
-            upcoming_shows.append(data)
-        else:
-            past_shows.append(data) 
+    past_shows = Show.query.join(Venue).filter(Show.artist_id == artist_id).filter(Show.start_time < current_time).all()
+    upcoming_shows = Show.query.join(Venue).filter(Show.artist_id == artist_id).filter(Show.start_time >= current_time).all()
 
     data = {
         'id': artist.id,
@@ -450,20 +428,9 @@ def create_artist_submission():
 
 @app.route('/shows')
 def shows():
-    shows = Show.query.order_by(db.desc(Show.start_time))
+    shows = Show.query.join(Venue).join(Artist).order_by(db.desc(Show.start_time))
 
-    data = []
-    for show in shows:
-        data.append({
-            'venue_id': show.venue_id,
-            'venue_name': show.venue.name,
-            'artist_id': show.artist_id,
-            'artist_name': show.artist.name,
-            'artist_image_link': show.artist.image_link,
-            'start_time': format_datetime(str(show.start_time))
-        })
-
-    return render_template('pages/shows.html', shows=data)
+    return render_template('pages/shows.html', shows=shows)
 
 
 @app.route('/shows/create')
